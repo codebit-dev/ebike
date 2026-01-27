@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Register - E-Bike System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">Register</h3>
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ register_form.as_p }}
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success" type="submit">Register</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="{% url 'accounts:login' %}">Login here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

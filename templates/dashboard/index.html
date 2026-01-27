@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - E-Bike System{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="jumbotron bg-white p-5 rounded shadow">
+        <h1 class="display-4">Welcome to E-Bike System Dashboard</h1>
+        <p class="lead">Hello, {{ user.username }}! This is your control center.</p>
+        <hr class="my-4">
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 border-primary">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Inventory</h5>
+                        <p class="card-text">Manage your e-bike stock and parts.</p>
+                        <a href="#" class="btn btn-outline-primary">Go to Inventory</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 border-success">
+                    <div class="card-body">
+                        <h5 class="card-title text-success">Sales</h5>
+                        <p class="card-text">Track your sales and customer orders.</p>
+                        <a href="#" class="btn btn-outline-success">Go to Sales</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 border-info">
+                    <div class="card-body">
+                        <h5 class="card-title text-info">Services</h5>
+                        <p class="card-text">Manage maintenance and repair requests.</p>
+                        <a href="#" class="btn btn-outline-info">Go to Services</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
