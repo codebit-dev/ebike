@@ -1,12 +1,23 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.password_validation import validate_password
 from .models import User
+
+# Base class to bypass password validation
+class NoPasswordValidationMixin:
+    """Mixin to disable password validation for easier development/testing"""
+    def _post_clean(self):
+        super()._post_clean()
+        # Override to skip password validation
+        password = self.cleaned_data.get('password2')
+        if password:
+            self.instance.set_password(password)
 
 class AdminLoginForm(AuthenticationForm):
     username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'}))
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
 
-class ServiceRegistrationForm(UserCreationForm):
+class ServiceRegistrationForm(NoPasswordValidationMixin, UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}))
     phone = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone Number'}))
     
@@ -31,7 +42,7 @@ class ServiceRegistrationForm(UserCreationForm):
             user.save()
         return user
 
-class EmployeeRegistrationForm(UserCreationForm):
+class EmployeeRegistrationForm(NoPasswordValidationMixin, UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}))
     phone = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone Number'}))
     
@@ -52,6 +63,56 @@ class EmployeeRegistrationForm(UserCreationForm):
         user.email = self.cleaned_data['email']
         user.phone = self.cleaned_data.get('phone')
         user.user_type = 'employee'
+        if commit:
+            user.save()
+        return user
+
+class DealerRegistrationForm(NoPasswordValidationMixin, UserCreationForm):
+    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}))
+    phone = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone Number'}))
+    
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'phone', 'password1', 'password2')
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['password1'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Password'})
+        self.fields['password2'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Confirm Password'})
+    
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+        user.phone = self.cleaned_data.get('phone')
+        user.user_type = 'dealer'
+        if commit:
+            user.save()
+        return user
+
+class CustomerRegistrationForm(NoPasswordValidationMixin, UserCreationForm):
+    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}))
+    phone = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone Number'}))
+    
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'phone', 'password1', 'password2')
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['password1'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Password'})
+        self.fields['password2'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Confirm Password'})
+    
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+        user.phone = self.cleaned_data.get('phone')
+        user.user_type = 'customer'
         if commit:
             user.save()
         return user

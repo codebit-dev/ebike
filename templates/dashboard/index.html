@@ -3,37 +3,201 @@
 {% block title %}Dashboard - E-Bike System{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="jumbotron bg-white p-5 rounded shadow">
-        <h1 class="display-4">Welcome to E-Bike System Dashboard</h1>
-        <p class="lead">Hello, {{ user.username }}! This is your control center.</p>
-        <hr class="my-4">
-        <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 border-primary">
-                    <div class="card-body">
-                        <h5 class="card-title text-primary">Inventory</h5>
-                        <p class="card-text">Manage your e-bike stock and parts.</p>
-                        <a href="#" class="btn btn-outline-primary">Go to Inventory</a>
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="mb-4">
+        <h2 class="fw-bold mb-1">
+            <i class="bi bi-speedometer2 text-primary"></i> Dashboard
+        </h2>
+        <p class="text-muted mb-0">Welcome back, <strong>{{ user.username }}</strong>! Here's your overview.</p>
+    </div>
+
+    {% if is_admin %}
+    <!-- Admin Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                                 style="width: 48px; height: 48px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">
+                                <i class="bi bi-shop text-white fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted text-uppercase small mb-1 fw-semibold">Dealers</p>
+                            <h3 class="mb-0 fw-bold">{{ dealer_count|default:"0" }}</h3>
+                        </div>
                     </div>
+                    <a href="{% url 'accounts:admin_users' %}?type=dealer" 
+                       class="btn btn-sm btn-warning text-dark w-100 mt-3 fw-semibold">
+                        <i class="bi bi-arrow-right-circle"></i> Manage Dealers
+                    </a>
                 </div>
             </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 border-success">
-                    <div class="card-body">
-                        <h5 class="card-title text-success">Sales</h5>
-                        <p class="card-text">Track your sales and customer orders.</p>
-                        <a href="#" class="btn btn-outline-success">Go to Sales</a>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                                 style="width: 48px; height: 48px; background: linear-gradient(135deg, #34d399 0%, #10b981 100%);">
+                                <i class="bi bi-people-fill text-white fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted text-uppercase small mb-1 fw-semibold">Employees</p>
+                            <h3 class="mb-0 fw-bold">{{ employee_count|default:"0" }}</h3>
+                        </div>
                     </div>
+                    <a href="{% url 'accounts:admin_users' %}?type=employee" 
+                       class="btn btn-sm btn-success w-100 mt-3 fw-semibold">
+                        <i class="bi bi-arrow-right-circle"></i> Manage Employees
+                    </a>
                 </div>
             </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 border-info">
-                    <div class="card-body">
-                        <h5 class="card-title text-info">Services</h5>
-                        <p class="card-text">Manage maintenance and repair requests.</p>
-                        <a href="#" class="btn btn-outline-info">Go to Services</a>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                                 style="width: 48px; height: 48px; background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);">
+                                <i class="bi bi-box-seam text-white fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted text-uppercase small mb-1 fw-semibold">Warehouse Items</p>
+                            <h3 class="mb-0 fw-bold">{{ warehouse_count|default:"0" }}</h3>
+                        </div>
                     </div>
+                    <a href="#" class="btn btn-sm btn-info text-white w-100 mt-3 fw-semibold">
+                        <i class="bi bi-arrow-right-circle"></i> Manage Stock
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                                 style="width: 48px; height: 48px; background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);">
+                                <i class="bi bi-person-lines-fill text-white fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted text-uppercase small mb-1 fw-semibold">Total Users</p>
+                            <h3 class="mb-0 fw-bold">{{ total_users|default:"0" }}</h3>
+                        </div>
+                    </div>
+                    <a href="{% url 'accounts:admin_users' %}" 
+                       class="btn btn-sm btn-secondary w-100 mt-3 fw-semibold">
+                        <i class="bi bi-arrow-right-circle"></i> View All Users
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- System Modules -->
+    <div class="mb-3">
+        <h4 class="fw-semibold"><i class="bi bi-grid-3x3-gap text-primary"></i> System Modules</h4>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                             style="width: 64px; height: 64px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                            <i class="bi bi-box text-white" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold mb-2">Inventory Management</h5>
+                    <p class="text-muted small mb-3">Manage e-bike stock, parts, and accessories</p>
+                    <a href="#" class="btn btn-outline-primary fw-semibold">Open Module</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                             style="width: 64px; height: 64px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            <i class="bi bi-cart3 text-white" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold mb-2">Sales Management</h5>
+                    <p class="text-muted small mb-3">Track sales, orders, and transactions</p>
+                    <a href="#" class="btn btn-outline-success fw-semibold">Open Module</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                             style="width: 64px; height: 64px; background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
+                            <i class="bi bi-tools text-white" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold mb-2">Service Management</h5>
+                    <p class="text-muted small mb-3">Handle maintenance and repairs</p>
+                    <a href="#" class="btn btn-outline-info fw-semibold">Open Module</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                             style="width: 64px; height: 64px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                            <i class="bi bi-file-earmark-text text-white" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold mb-2">Reports</h5>
+                    <p class="text-muted small mb-3">Generate and view system reports</p>
+                    <a href="#" class="btn btn-outline-warning fw-semibold">Open Module</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                             style="width: 64px; height: 64px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                            <i class="bi bi-calendar-check text-white" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold mb-2">Attendance</h5>
+                    <p class="text-muted small mb-3">Track employee attendance</p>
+                    <a href="#" class="btn btn-outline-danger fw-semibold">Open Module</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                             style="width: 64px; height: 64px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                            <i class="bi bi-clipboard-check text-white" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold mb-2">Approvals</h5>
+                    <p class="text-muted small mb-3">Manage approval requests</p>
+                    <a href="#" class="btn btn-outline-primary fw-semibold">Open Module</a>
                 </div>
             </div>
         </div>

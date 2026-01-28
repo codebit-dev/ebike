@@ -5,7 +5,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import (
     AdminLoginForm, ServiceRegistrationForm, EmployeeRegistrationForm,
-    UserLoginForm, AdminUserCreateForm, AdminUserEditForm
+    UserLoginForm, AdminUserCreateForm, AdminUserEditForm,
+    DealerRegistrationForm, CustomerRegistrationForm
 )
 from .models import User
 
@@ -27,7 +28,7 @@ def admin_login_view(request):
             if user is not None and user.user_type == 'admin':
                 login(request, user)
                 messages.success(request, f"Welcome Admin {username}!")
-                return redirect("accounts:admin_users")
+                return redirect("dashboard:index")
             else:
                 messages.error(request, "Invalid admin credentials or insufficient permissions.")
         else:
@@ -41,7 +42,17 @@ def admin_login_view(request):
 @user_passes_test(is_admin, login_url='accounts:admin_login')
 def admin_users_view(request):
     users = User.objects.all().order_by('-date_joined')
-    return render(request, "accounts/admin_users.html", {"users": users})
+    
+    # Filter by user type if specified
+    user_type = request.GET.get('type')
+    if user_type and user_type in ['dealer', 'employee', 'service']:
+        users = users.filter(user_type=user_type)
+    
+    context = {
+        'users': users,
+        'filter_type': user_type,
+    }
+    return render(request, "accounts/admin_users.html", context)
 
 @login_required
 @user_passes_test(is_admin, login_url='accounts:admin_login')
@@ -151,6 +162,74 @@ def employee_login_view(request):
     else:
         form = UserLoginForm()
     return render(request, "accounts/employee_login.html", {"form": form})
+
+# Dealer Registration & Login
+def dealer_register_view(request):
+    if request.method == "POST":
+        form = DealerRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, "Dealer registration successful!")
+            return redirect("dashboard:index")
+        else:
+            messages.error(request, "Registration failed. Please check the form.")
+    else:
+        form = DealerRegistrationForm()
+    return render(request, "accounts/dealer_register.html", {"form": form})
+
+def dealer_login_view(request):
+    if request.method == "POST":
+        form = UserLoginForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None and user.user_type == 'dealer':
+                login(request, user)
+                messages.success(request, f"Welcome {username}!")
+                return redirect("dashboard:index")
+            else:
+                messages.error(request, "Invalid dealer credentials.")
+        else:
+            messages.error(request, "Invalid username or password.")
+    else:
+        form = UserLoginForm()
+    return render(request, "accounts/dealer_login.html", {"form": form})
+
+# Customer Registration & Login
+def customer_register_view(request):
+    if request.method == "POST":
+        form = CustomerRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, "Customer registration successful!")
+            return redirect("dashboard:index")
+        else:
+            messages.error(request, "Registration failed. Please check the form.")
+    else:
+        form = CustomerRegistrationForm()
+    return render(request, "accounts/customer_register.html", {"form": form})
+
+def customer_login_view(request):
+    if request.method == "POST":
+        form = UserLoginForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None and user.user_type == 'customer':
+                login(request, user)
+                messages.success(request, f"Welcome {username}!")
+                return redirect("dashboard:index")
+            else:
+                messages.error(request, "Invalid customer credentials.")
+        else:
+            messages.error(request, "Invalid username or password.")
+    else:
+        form = UserLoginForm()
+    return render(request, "accounts/customer_login.html", {"form": form})
 
 # Legacy views (kept for compatibility)
 def register_view(request):
