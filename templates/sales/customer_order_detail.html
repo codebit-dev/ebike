@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+
+{% block title %}Order {{ order.order_number }} - E-Bike System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-6 mb-0">
+                <i class="bi bi-receipt"></i> Order Details
+            </h1>
+            <p class="text-muted">Order #{{ order.order_number }}</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'sales:customer_order_history' %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Orders
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-box-seam"></i> Order Items
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order_items %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <h6 class="mb-1">{{ item.product.name }}</h6>
+                                            <small class="text-muted">{{ item.product.description|truncatewords:10 }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ item.product.get_category_display|lower }}">
+                                            {{ item.product.get_category_display }}
+                                        </span>
+                                    </td>
+                                    <td>${{ item.unit_price|floatformat:2 }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td class="fw-bold">${{ item.total_price|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Order Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Customer Details</h6>
+                            <p class="mb-1"><strong>Name:</strong> {{ order.customer.get_full_name|default:order.customer.username }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ order.customer.email }}</p>
+                            <p class="mb-1"><strong>Phone:</strong> {{ order.phone_number }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Order Details</h6>
+                            <p class="mb-1"><strong>Order Number:</strong> {{ order.order_number }}</p>
+                            <p class="mb-1"><strong>Order Date:</strong> {{ order.created_at|date:"M j, Y g:i A" }}</p>
+                            {% if order.approved_at %}
+                            <p class="mb-1"><strong>Approved Date:</strong> {{ order.approved_at|date:"M j, Y g:i A" }}</p>
+                            {% endif %}
+                            {% if order.delivered_at %}
+                            <p class="mb-1"><strong>Delivered Date:</strong> {{ order.delivered_at|date:"M j, Y g:i A" }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="text-muted">Shipping Address</h6>
+                    <p class="mb-3">{{ order.shipping_address|linebreaksbr }}</p>
+                    
+                    {% if order.notes %}
+                    <h6 class="text-muted">Order Notes</h6>
+                    <p class="mb-0">{{ order.notes|linebreaksbr }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-kanban"></i> Order Status
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        {% if order.status == 'pending' %}
+                            <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                                <i class="bi bi-hourglass-split"></i> Pending Approval
+                            </span>
+                        {% elif order.status == 'approved' %}
+                            <span class="badge bg-info text-white fs-6 px-3 py-2">
+                                <i class="bi bi-check-circle"></i> Approved
+                            </span>
+                        {% elif order.status == 'processing' %}
+                            <span class="badge bg-primary fs-6 px-3 py-2">
+                                <i class="bi bi-gear"></i> Processing
+                            </span>
+                        {% elif order.status == 'shipped' %}
+                            <span class="badge bg-primary fs-6 px-3 py-2">
+                                <i class="bi bi-truck"></i> Shipped
+                            </span>
+                        {% elif order.status == 'delivered' %}
+                            <span class="badge bg-success fs-6 px-3 py-2">
+                                <i class="bi bi-check-all"></i> Delivered
+                            </span>
+                        {% elif order.status == 'cancelled' %}
+                            <span class="badge bg-danger fs-6 px-3 py-2">
+                                <i class="bi bi-x-circle"></i> Cancelled
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="progress-steps mb-4">
+                        <div class="step {% if order.status != 'pending' %}completed{% endif %}">
+                            <div class="step-icon">
+                                <i class="bi bi-hourglass-split"></i>
+                            </div>
+                            <p class="step-label">Pending</p>
+                        </div>
+                        <div class="step {% if order.status in 'approved,processing,shipped,delivered' %}completed{% endif %}">
+                            <div class="step-icon">
+                                <i class="bi bi-check-circle"></i>
+                            </div>
+                            <p class="step-label">Approved</p>
+                        </div>
+                        <div class="step {% if order.status in 'processing,shipped,delivered' %}completed{% endif %}">
+                            <div class="step-icon">
+                                <i class="bi bi-gear"></i>
+                            </div>
+                            <p class="step-label">Processing</p>
+                        </div>
+                        <div class="step {% if order.status in 'shipped,delivered' %}completed{% endif %}">
+                            <div class="step-icon">
+                                <i class="bi bi-truck"></i>
+                            </div>
+                            <p class="step-label">Shipped</p>
+                        </div>
+                        <div class="step {% if order.status == 'delivered' %}completed{% endif %}">
+                            <div class="step-icon">
+                                <i class="bi bi-check-all"></i>
+                            </div>
+                            <p class="step-label">Delivered</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-currency-dollar"></i> Payment Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span class="fw-bold">${{ order.total_amount|floatformat:2 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping:</span>
+                        <span class="fw-bold text-success">FREE</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span class="fs-5">Total:</span>
+                        <span class="fs-5 fw-bold text-primary">${{ order.total_amount|floatformat:2 }}</span>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <span class="badge bg-{{ order.get_payment_status_display|lower }} fs-6">
+                            <i class="bi bi-wallet2"></i> {{ order.get_payment_status_display }}
+                        </span>
+                    </div>
+                    
+                    {% if order.receipt %}
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <h6 class="mb-2">Receipt Issued</h6>
+                        <p class="mb-1"><strong>Receipt #:</strong> {{ order.receipt.receipt_number }}</p>
+                        <p class="mb-1"><strong>Date:</strong> {{ order.receipt.issued_at|date:"M j, Y" }}</p>
+                        <p class="mb-0"><strong>Amount:</strong> ${{ order.receipt.amount_paid|floatformat:2 }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if order.status == 'pending' %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Your order is awaiting approval</strong>
+                <p class="mb-0">Your dealer will review and approve your order shortly.</p>
+            </div>
+            {% elif order.status == 'approved' %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle"></i>
+                <strong>Order Approved!</strong>
+                <p class="mb-0">Your order has been approved and is being processed.</p>
+            </div>
+            {% elif order.status == 'delivered' %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-all"></i>
+                <strong>Order Delivered!</strong>
+                <p class="mb-0">Thank you for your purchase. We hope you enjoy your products!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: 1px solid rgba(0,0,0,0.125);
+    border-radius: 0.75rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.badge.bg-battery { background-color: #0d6efd !important; }
+.badge.bg-controller { background-color: #198754 !important; }
+.badge.bg-display { background-color: #ffc107 !important; }
+.badge.bg-charger { background-color: #dc3545 !important; }
+.badge.bg-accessory { background-color: #6f42c1 !important; }
+.badge.bg-pending { background-color: #ffc107 !important; }
+.badge.bg-approved { background-color: #0dcaf0 !important; }
+.badge.bg-processing { background-color: #0d6efd !important; }
+.badge.bg-shipped { background-color: #6610f2 !important; }
+.badge.bg-delivered { background-color: #198754 !important; }
+.badge.bg-cancelled { background-color: #dc3545 !important; }
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+}
+.progress-steps::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #dee2e6;
+    z-index: 1;
+}
+.step {
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+.step.completed .step-icon {
+    background-color: #198754;
+    color: white;
+}
+.step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    font-size: 1.2rem;
+}
+.step-label {
+    font-size: 0.75rem;
+    margin: 0;
+    color: #6c757d;
+}
+.step.completed .step-label {
+    color: #198754;
+    font-weight: 600;
+}
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+</style>
+{% endblock %}

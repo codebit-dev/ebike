@@ -1,0 +1,508 @@
+{% extends "base.html" %}
+
+{% block title %}Request Stock - Dealer Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-arrow-down-circle"></i> Request Stock from Warehouse
+            </h2>
+            <p class="text-muted mb-0">Submit requests for additional inventory from the central warehouse</p>
+        </div>
+        <div>
+            <a href="{% url 'inventory:dealer_stock' %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Back to My Stock
+            </a>
+            <a href="{% url 'dashboard:index' %}" class="btn btn-primary">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Current Pending Requests -->
+    {% if pending_requests %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning bg-opacity-10">
+                    <h5 class="mb-0 text-warning">
+                        <i class="bi bi-hourglass-split"></i> Pending Requests
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-warning">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Quantity Requested</th>
+                                    <th>Date Requested</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request in pending_requests %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ request.item.name }}</strong>
+                                        <br><small class="text-muted">{{ request.item.sku }}</small>
+                                    </td>
+                                    <td>{{ request.quantity_requested }}</td>
+                                    <td>{{ request.created_at|date:"M j, Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-warning">Pending Review</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-warning" 
+                                                onclick="cancelRequest({{ request.id }})">
+                                            <i class="bi bi-x-circle"></i> Cancel
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Available Items for Request -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-boxes"></i> Available Warehouse Items
+                        </h5>
+                        <div class="input-group" style="width: 300px;">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" id="searchItems" class="form-control" 
+                                   placeholder="Search items...">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if warehouse_items %}
+                    <div class="row" id="itemsContainer">
+                        {% for item in warehouse_items %}
+                        <div class="col-md-6 col-lg-4 mb-3 item-card" data-name="{{ item.name|lower }}" data-sku="{{ item.sku|lower }}">
+                            <div class="card h-100 border-primary border-opacity-25 hover-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="card-title mb-0">{{ item.name }}</h6>
+                                        <span class="badge bg-primary">{{ item.get_category_display }}</span>
+                                    </div>
+                                    <p class="text-muted small mb-2">
+                                        <strong>SKU:</strong> {{ item.sku }}
+                                    </p>
+                                    <p class="text-muted small mb-3">
+                                        {{ item.description|truncatewords:15|default:"No description available" }}
+                                    </p>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <small class="text-muted">Warehouse Stock</small>
+                                            <div class="fs-5 fw-bold text-primary">{{ item.quantity }}</div>
+                                        </div>
+                                        <div>
+                                            <small class="text-muted">Unit Price</small>
+                                            <div class="fs-5 fw-bold text-success">${{ item.unit_price|floatformat:2 }}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label small">Request Quantity</label>
+                                        <input type="number" class="form-control form-control-sm quantity-input" 
+                                               min="1" max="{{ item.quantity }}" 
+                                               placeholder="Enter quantity"
+                                               data-item-id="{{ item.id }}"
+                                               data-item-name="{{ item.name }}">
+                                    </div>
+                                    
+                                    <button class="btn btn-primary w-100 request-btn" 
+                                            data-item-id="{{ item.id }}"
+                                            data-item-name="{{ item.name }}"
+                                            disabled>
+                                        <i class="bi bi-plus-circle"></i> Add to Request
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-boxes fs-1 text-muted mb-3"></i>
+                        <h5 class="text-muted">No Items Available</h5>
+                        <p class="text-muted">There are currently no items available in the warehouse.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Request Summary Sidebar -->
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 80px;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clipboard-check"></i> Request Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="requestSummary">
+                        <p class="text-muted text-center py-3">
+                            <i class="bi bi-cart-x fs-1"></i><br>
+                            No items selected for request
+                        </p>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label">Reason for Request</label>
+                        <textarea id="requestReason" class="form-control" rows="3" 
+                                  placeholder="Briefly explain why you need this stock..."></textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-3">
+                        <button id="submitRequestBtn" class="btn btn-success btn-lg" disabled>
+                            <i class="bi bi-send"></i> Submit Request
+                        </button>
+                        <button id="clearRequestBtn" class="btn btn-outline-secondary">
+                            <i class="bi bi-trash"></i> Clear All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Section -->
+    <div class="row mt-4">
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-box fs-2 text-primary mb-2"></i>
+                    <h5>{{ warehouse_items|length }}</h5>
+                    <p class="text-muted mb-0">Available Items</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-currency-dollar fs-2 text-success mb-2"></i>
+                    <h5>${{ total_value|floatformat:2|default:"0.00" }}</h5>
+                    <p class="text-muted mb-0">Total Inventory Value</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-hourglass-split fs-2 text-warning mb-2"></i>
+                    <h5>{{ pending_requests|length }}</h5>
+                    <p class="text-muted mb-0">Pending Requests</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-check-circle fs-2 text-info mb-2"></i>
+                    <h5>{{ approved_requests|length|default:0 }}</h5>
+                    <p class="text-muted mb-0">Approved Requests</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Request Submitted Modal -->
+<div class="modal fade" id="requestSubmittedModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-check-circle"></i> Request Submitted
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Request Sent Successfully!</h4>
+                <p>Your stock request has been submitted to the warehouse team for review.</p>
+                <p class="text-muted">You'll receive a notification once it's approved or rejected.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="{% url 'inventory:dealer_stock' %}" class="btn btn-primary">
+                    <i class="bi bi-box-seam"></i> View My Stock
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+}
+.hover-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-5px);
+    border-color: var(--primary-color);
+}
+.quantity-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.btn-primary {
+    background: var(--primary-color);
+    border: none;
+}
+.btn-primary:hover:not(:disabled) {
+    background: var(--secondary-color);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+.btn-success {
+    background: var(--success-color);
+    border: none;
+}
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+.sticky-top {
+    z-index: 1020;
+}
+.item-card {
+    transition: all 0.3s;
+}
+.item-card.filtered-out {
+    display: none;
+}
+.badge {
+    font-weight: 600;
+}
+.modal-header.bg-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+}
+</style>
+
+<script>
+let requestItems = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('searchItems');
+    const itemCards = document.querySelectorAll('.item-card');
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        itemCards.forEach(card => {
+            const itemName = card.dataset.name;
+            const itemSku = card.dataset.sku;
+            
+            if (itemName.includes(searchTerm) || itemSku.includes(searchTerm)) {
+                card.classList.remove('filtered-out');
+            } else {
+                card.classList.add('filtered-out');
+            }
+        });
+    });
+    
+    // Quantity input validation and button enabling
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const itemId = this.dataset.itemId;
+            const itemName = this.dataset.itemName;
+            const quantity = parseInt(this.value) || 0;
+            const maxValue = parseInt(this.max) || 0;
+            
+            const requestBtn = document.querySelector(`.request-btn[data-item-id="${itemId}"]`);
+            
+            if (quantity > 0 && quantity <= maxValue) {
+                requestBtn.disabled = false;
+                requestBtn.classList.remove('btn-secondary');
+                requestBtn.classList.add('btn-primary');
+            } else {
+                requestBtn.disabled = true;
+                requestBtn.classList.remove('btn-primary');
+                requestBtn.classList.add('btn-secondary');
+            }
+        });
+    });
+    
+    // Add to request button
+    document.querySelectorAll('.request-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            const itemName = this.dataset.itemName;
+            const quantityInput = document.querySelector(`.quantity-input[data-item-id="${itemId}"]`);
+            const quantity = parseInt(quantityInput.value) || 0;
+            
+            if (quantity > 0) {
+                // Add to request items
+                const existingItem = requestItems.find(item => item.id == itemId);
+                if (existingItem) {
+                    existingItem.quantity = quantity;
+                } else {
+                    requestItems.push({
+                        id: itemId,
+                        name: itemName,
+                        quantity: quantity
+                    });
+                }
+                
+                // Update UI
+                updateRequestSummary();
+                updateSubmitButton();
+                
+                // Reset input and disable button
+                quantityInput.value = '';
+                this.disabled = true;
+                this.classList.remove('btn-primary');
+                this.classList.add('btn-secondary');
+                
+                // Show success feedback
+                showSuccessFeedback(this);
+            }
+        });
+    });
+    
+    // Submit request
+    document.getElementById('submitRequestBtn').addEventListener('click', function() {
+        if (requestItems.length === 0) return;
+        
+        const reason = document.getElementById('requestReason').value;
+        
+        // In a real implementation, this would send an AJAX request
+        console.log('Submitting request:', { items: requestItems, reason: reason });
+        
+        // Show success modal
+        const modal = new bootstrap.Modal(document.getElementById('requestSubmittedModal'));
+        modal.show();
+        
+        // Clear the request
+        clearRequest();
+    });
+    
+    // Clear request
+    document.getElementById('clearRequestBtn').addEventListener('click', clearRequest);
+});
+
+function updateRequestSummary() {
+    const summaryDiv = document.getElementById('requestSummary');
+    
+    if (requestItems.length === 0) {
+        summaryDiv.innerHTML = `
+            <p class="text-muted text-center py-3">
+                <i class="bi bi-cart-x fs-1"></i><br>
+                No items selected for request
+            </p>
+        `;
+        return;
+    }
+    
+    let html = '<div class="list-group list-group-flush">';
+    let totalItems = 0;
+    
+    requestItems.forEach(item => {
+        totalItems += item.quantity;
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${item.name}</strong>
+                    <br><small class="text-muted">Quantity: ${item.quantity}</small>
+                </div>
+                <button class="btn btn-sm btn-outline-danger" onclick="removeItem(${item.id})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    html += `<div class="mt-3 p-2 bg-light rounded">
+                <strong>Total Items Requested: ${totalItems}</strong>
+             </div>`;
+    
+    summaryDiv.innerHTML = html;
+}
+
+function updateSubmitButton() {
+    const submitBtn = document.getElementById('submitRequestBtn');
+    submitBtn.disabled = requestItems.length === 0;
+}
+
+function removeItem(itemId) {
+    requestItems = requestItems.filter(item => item.id != itemId);
+    updateRequestSummary();
+    updateSubmitButton();
+    
+    // Re-enable the add button for this item
+    const addButton = document.querySelector(`.request-btn[data-item-id="${itemId}"]`);
+    if (addButton) {
+        addButton.disabled = false;
+        addButton.classList.remove('btn-secondary');
+        addButton.classList.add('btn-primary');
+    }
+}
+
+function clearRequest() {
+    requestItems = [];
+    updateRequestSummary();
+    updateSubmitButton();
+    document.getElementById('requestReason').value = '';
+    
+    // Re-enable all add buttons
+    document.querySelectorAll('.request-btn').forEach(button => {
+        button.disabled = false;
+        button.classList.remove('btn-secondary');
+        button.classList.add('btn-primary');
+    });
+    
+    // Clear all quantity inputs
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.value = '';
+    });
+}
+
+function showSuccessFeedback(button) {
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-check"></i> Added!';
+    button.classList.remove('btn-primary');
+    button.classList.add('btn-success');
+    
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.classList.remove('btn-success');
+        button.classList.add('btn-secondary');
+    }, 2000);
+}
+
+function cancelRequest(requestId) {
+    if (confirm('Are you sure you want to cancel this request?')) {
+        // In a real implementation, this would send an AJAX request to cancel
+        alert(`Request ${requestId} would be cancelled in a real implementation`);
+        location.reload();
+    }
+}
+</script>
+{% endblock %}

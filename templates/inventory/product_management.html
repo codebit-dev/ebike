@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+
+{% block title %}Product Management - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-tags"></i> Product Management
+            </h2>
+            <p class="text-muted mb-0">Manage product catalog and categories</p>
+        </div>
+        <div>
+            <a href="{% url 'inventory:admin_stock' %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Back to Stock
+            </a>
+            <a href="{% url 'inventory:product_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add New Product
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Category</label>
+                    <select name="category" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Categories</option>
+                        {% for value, label in categories %}
+                        <option value="{{ value }}" {% if filter_category == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Search Products</label>
+                    <input type="text" name="search" class="form-control" placeholder="Search by name or SKU..." 
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                    <a href="{% url 'inventory:product_management' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-box fs-2 text-primary mb-2"></i>
+                    <h5>{{ products.count }}</h5>
+                    <p class="text-muted mb-0">Total Products</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-collection fs-2 text-success mb-2"></i>
+                    <h5>{{ categories|length }}</h5>
+                    <p class="text-muted mb-0">Categories</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-currency-dollar fs-2 text-warning mb-2"></i>
+                    <h5>${{ avg_price|floatformat:2|default:"0.00" }}</h5>
+                    <p class="text-muted mb-0">Average Price</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-graph-up fs-2 text-info mb-2"></i>
+                    <h5>{{ out_of_stock|length|default:0 }}</h5>
+                    <p class="text-muted mb-0">Out of Stock</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Products Table -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-list"></i> Product Catalog
+                    {% if filter_category %}
+                    <span class="badge bg-primary ms-2">{{ filter_category|title }}</span>
+                    {% endif %}
+                </h5>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                            data-bs-toggle="dropdown">
+                        <i class="bi bi-download"></i> Export
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-filetype-csv"></i> CSV</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-filetype-pdf"></i> PDF</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-filetype-xlsx"></i> Excel</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if products %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Total Value</th>
+                            <th>Status</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" 
+                                             style="width: 40px; height: 40px;">
+                                            <i class="bi bi-box text-muted"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <strong>{{ product.name }}</strong>
+                                        {% if product.description %}
+                                        <br><small class="text-muted">{{ product.description|truncatewords:6 }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td><code class="text-primary">{{ product.sku }}</code></td>
+                            <td>
+                                <span class="badge bg-{{ product.category|yesno:'primary,success,warning,danger' }}">
+                                    {{ product.get_category_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="fw-bold {{ product.quantity|yesno:'text-success,text-warning,text-danger' }}">
+                                    {{ product.quantity }}
+                                </span>
+                                {% if product.quantity == 0 %}
+                                <br><small class="text-danger"><i class="bi bi-exclamation-circle"></i> Out of Stock</small>
+                                {% endif %}
+                            </td>
+                            <td>${{ product.unit_price|floatformat:2 }}</td>
+                            <td>${{ product.total_value|floatformat:2 }}</td>
+                            <td>
+                                {% if product.quantity > 20 %}
+                                    <span class="badge bg-success">In Stock</span>
+                                {% elif product.quantity > 0 %}
+                                    <span class="badge bg-warning text-dark">Low Stock</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ product.updated_at|date:"M j, Y" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'inventory:product_edit' product.id %}" 
+                                       class="btn btn-outline-primary" title="Edit Product">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button class="btn btn-outline-info" title="View Details" disabled>
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="Delete Product" 
+                                            onclick="confirmDelete({{ product.id }}, '{{ product.name }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if products.has_other_pages %}
+            <nav aria-label="Product pagination">
+                <ul class="pagination justify-content-center">
+                    {% if products.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ products.previous_page_number }}{% if filter_category %}&category={{ filter_category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in products.paginator.page_range %}
+                        {% if products.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if filter_category %}&category={{ filter_category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if products.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ products.next_page_number }}{% if filter_category %}&category={{ filter_category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-boxes fs-1 text-muted mb-3"></i>
+                <h5 class="text-muted">No Products Found</h5>
+                <p class="text-muted">
+                    {% if filter_category or request.GET.search %}
+                        No products match your current filters.
+                    {% else %}
+                        No products have been added to the catalog yet.
+                    {% endif %}
+                </p>
+                <a href="{% url 'inventory:product_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add New Product
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Category Distribution Chart -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart"></i> Category Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for category_data in category_distribution %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">{{ category_data.name }}</h6>
+                                    <div class="display-4 text-primary mb-2">{{ category_data.count }}</div>
+                                    <p class="text-muted mb-0">{{ category_data.percentage }}% of total products</p>
+                                    <div class="progress mt-2" style="height: 8px;">
+                                        <div class="progress-bar bg-primary" 
+                                             style="width: {{ category_data.percentage }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="productName"></strong>?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete Product</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+.badge {
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+}
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+}
+.card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+.progress {
+    border-radius: 4px;
+}
+.progress-bar {
+    border-radius: 4px;
+}
+.dropdown-menu {
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow-lg);
+}
+.pagination .page-link {
+    border-radius: 0.375rem;
+    margin: 0 2px;
+}
+.pagination .page-item.active .page-link {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+</style>
+
+<script>
+let productIdToDelete = null;
+
+function confirmDelete(productId, productName) {
+    productIdToDelete = productId;
+    document.getElementById('productName').textContent = productName;
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+document.getElementById('confirmDelete').addEventListener('click', function() {
+    if (productIdToDelete) {
+        // In a real implementation, this would make an AJAX call to delete the product
+        alert(`Product ${productIdToDelete} would be deleted in a real implementation`);
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+    }
+});
+
+// Auto-submit search on enter
+document.querySelector('input[name="search"]').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        this.form.submit();
+    }
+});
+</script>
+{% endblock %}

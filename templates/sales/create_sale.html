@@ -1,0 +1,538 @@
+{% extends "base.html" %}
+
+{% block title %}Create New Sale - Dealer Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-cart-plus"></i> Create New Sale
+            </h2>
+            <p class="text-muted mb-0">Process a new customer sale transaction</p>
+        </div>
+        <div>
+            <a href="{% url 'sales:dealer_sales' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Sales
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Customer Information -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person"></i> Customer Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="customerForm">
+                        <div class="mb-3">
+                            <label class="form-label">Customer Name *</label>
+                            <input type="text" id="customerName" class="form-control" required
+                                   placeholder="Enter customer full name">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number *</label>
+                            <input type="tel" id="customerPhone" class="form-control" required
+                                   placeholder="Enter phone number">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" id="customerEmail" class="form-control"
+                                   placeholder="Enter email address (optional)">
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="card sticky-top" style="top: 80px;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-receipt"></i> Order Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="orderSummary">
+                        <p class="text-muted text-center py-3">
+                            <i class="bi bi-cart-x fs-1"></i><br>
+                            No items selected
+                        </p>
+                    </div>
+                    
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>Subtotal:</strong>
+                        <span id="subtotal">$0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>Tax ({{ tax_rate|default:"5" }}%):</strong>
+                        <span id="taxAmount">$0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total:</strong>
+                        <span id="totalAmount" class="text-success fw-bold">$0.00</span>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button id="processSaleBtn" class="btn btn-success btn-lg" disabled>
+                            <i class="bi bi-check-circle"></i> Process Sale
+                        </button>
+                        <button id="resetOrderBtn" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-repeat"></i> Reset Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Stock -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-boxes"></i> Available Stock
+                        </h5>
+                        <div class="input-group" style="width: 300px;">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" id="searchStock" class="form-control" 
+                                   placeholder="Search stock items...">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if available_stock %}
+                    <div class="row" id="stockContainer">
+                        {% for stock in available_stock %}
+                        <div class="col-md-6 col-lg-4 mb-3 stock-item" 
+                             data-name="{{ stock.item.name|lower }}" 
+                             data-category="{{ stock.item.category }}">
+                            <div class="card h-100 border-primary border-opacity-25 hover-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="card-title mb-0">{{ stock.item.name }}</h6>
+                                        <span class="badge bg-primary">{{ stock.item.get_category_display }}</span>
+                                    </div>
+                                    <p class="text-muted small mb-2">
+                                        <strong>SKU:</strong> {{ stock.item.sku }}
+                                    </p>
+                                    <p class="text-muted small mb-3">
+                                        {{ stock.item.description|truncatewords:10|default:"No description" }}
+                                    </p>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <small class="text-muted">Available</small>
+                                            <div class="fs-5 fw-bold text-primary">{{ stock.available_quantity }}</div>
+                                        </div>
+                                        <div>
+                                            <small class="text-muted">Price</small>
+                                            <div class="fs-5 fw-bold text-success">${{ stock.selling_price|floatformat:2 }}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label small">Quantity</label>
+                                        <input type="number" class="form-control form-control-sm quantity-input" 
+                                               min="1" max="{{ stock.available_quantity }}" 
+                                               placeholder="Qty"
+                                               data-item-id="{{ stock.item.id }}"
+                                               data-item-name="{{ stock.item.name }}"
+                                               data-unit-price="{{ stock.selling_price }}">
+                                    </div>
+                                    
+                                    <button class="btn btn-primary w-100 add-item-btn" 
+                                            data-item-id="{{ stock.item.id }}"
+                                            data-item-name="{{ stock.item.name }}"
+                                            data-unit-price="{{ stock.selling_price }}"
+                                            disabled>
+                                        <i class="bi bi-plus-circle"></i> Add to Cart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-box-seam fs-1 text-muted mb-3"></i>
+                        <h5 class="text-muted">No Stock Available</h5>
+                        <p class="text-muted">You don't have any stock to sell. Request stock from the warehouse first.</p>
+                        <a href="{% url 'inventory:stock_request' %}" class="btn btn-primary">
+                            <i class="bi bi-arrow-down-circle"></i> Request Stock
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="mb-3">Quick Actions</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="loadCustomerData()">
+                            <i class="bi bi-person-lines-fill"></i> Load Previous Customer
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="applyDiscount()">
+                            <i class="bi bi-percent"></i> Apply Discount
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="saveDraft()">
+                            <i class="bi bi-save"></i> Save as Draft
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sale Success Modal -->
+<div class="modal fade" id="saleSuccessModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-check-circle"></i> Sale Completed Successfully!
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Sale Processed!</h4>
+                <p>Sale <strong id="saleIdDisplay"></strong> has been created successfully.</p>
+                <p class="text-success fw-bold fs-4" id="saleTotalDisplay"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="{% url 'sales:dealer_sales' %}" class="btn btn-primary">
+                    <i class="bi bi-list"></i> View Sales History
+                </a>
+                <a href="{% url 'sales:generate_invoice' 0 %}" id="invoiceLink" class="btn btn-success">
+                    <i class="bi bi-receipt"></i> Generate Invoice
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+}
+.hover-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-5px);
+    border-color: var(--primary-color);
+}
+.quantity-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.btn-primary {
+    background: var(--primary-color);
+    border: none;
+}
+.btn-primary:hover:not(:disabled) {
+    background: var(--secondary-color);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+.btn-success {
+    background: var(--success-color);
+    border: none;
+}
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+.sticky-top {
+    z-index: 1020;
+}
+.stock-item {
+    transition: all 0.3s;
+}
+.stock-item.filtered-out {
+    display: none;
+}
+.badge {
+    font-weight: 600;
+}
+.modal-header.bg-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+}
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+.list-group-item:first-child {
+    border-top: none;
+}
+.list-group-item:last-child {
+    border-bottom: none;
+}
+</style>
+
+<script>
+let cartItems = [];
+const TAX_RATE = {{ tax_rate|default:"5" }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('searchStock');
+    const stockItems = document.querySelectorAll('.stock-item');
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        stockItems.forEach(item => {
+            const itemName = item.dataset.name;
+            const itemCategory = item.dataset.category;
+            
+            if (itemName.includes(searchTerm) || itemCategory.includes(searchTerm)) {
+                item.classList.remove('filtered-out');
+            } else {
+                item.classList.add('filtered-out');
+            }
+        });
+    });
+    
+    // Quantity input validation and button enabling
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const itemId = this.dataset.itemId;
+            const quantity = parseInt(this.value) || 0;
+            const maxValue = parseInt(this.max) || 0;
+            
+            const addButton = document.querySelector(`.add-item-btn[data-item-id="${itemId}"]`);
+            
+            if (quantity > 0 && quantity <= maxValue) {
+                addButton.disabled = false;
+                addButton.classList.remove('btn-secondary');
+                addButton.classList.add('btn-primary');
+            } else {
+                addButton.disabled = true;
+                addButton.classList.remove('btn-primary');
+                addButton.classList.add('btn-secondary');
+            }
+        });
+    });
+    
+    // Add item to cart
+    document.querySelectorAll('.add-item-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            const itemName = this.dataset.itemName;
+            const unitPrice = parseFloat(this.dataset.unitPrice);
+            const quantityInput = document.querySelector(`.quantity-input[data-item-id="${itemId}"]`);
+            const quantity = parseInt(quantityInput.value) || 0;
+            
+            if (quantity > 0) {
+                // Add to cart
+                const existingItem = cartItems.find(item => item.id == itemId);
+                if (existingItem) {
+                    existingItem.quantity += quantity;
+                } else {
+                    cartItems.push({
+                        id: itemId,
+                        name: itemName,
+                        quantity: quantity,
+                        unitPrice: unitPrice
+                    });
+                }
+                
+                // Update UI
+                updateOrderSummary();
+                updateProcessButton();
+                
+                // Reset input and disable button
+                quantityInput.value = '';
+                this.disabled = true;
+                this.classList.remove('btn-primary');
+                this.classList.add('btn-secondary');
+                
+                // Show success feedback
+                showSuccessFeedback(this);
+            }
+        });
+    });
+    
+    // Process sale
+    document.getElementById('processSaleBtn').addEventListener('click', processSale);
+    
+    // Reset order
+    document.getElementById('resetOrderBtn').addEventListener('click', resetOrder);
+    
+    // Enable process button when customer info is filled
+    const customerInputs = document.querySelectorAll('#customerForm input[required]');
+    customerInputs.forEach(input => {
+        input.addEventListener('input', updateProcessButton);
+    });
+});
+
+function updateOrderSummary() {
+    const summaryDiv = document.getElementById('orderSummary');
+    const subtotalElement = document.getElementById('subtotal');
+    const taxElement = document.getElementById('taxAmount');
+    const totalElement = document.getElementById('totalAmount');
+    
+    if (cartItems.length === 0) {
+        summaryDiv.innerHTML = `
+            <p class="text-muted text-center py-3">
+                <i class="bi bi-cart-x fs-1"></i><br>
+                No items selected
+            </p>
+        `;
+        subtotalElement.textContent = '$0.00';
+        taxElement.textContent = '$0.00';
+        totalElement.textContent = '$0.00';
+        return;
+    }
+    
+    let html = '<div class="list-group list-group-flush">';
+    let subtotal = 0;
+    
+    cartItems.forEach(item => {
+        const itemTotal = item.quantity * item.unitPrice;
+        subtotal += itemTotal;
+        
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${item.name}</strong>
+                    <br><small class="text-muted">${item.quantity} × $${item.unitPrice.toFixed(2)}</small>
+                </div>
+                <div class="text-end">
+                    <span class="fw-bold">$${itemTotal.toFixed(2)}</span>
+                    <br>
+                    <button class="btn btn-sm btn-outline-danger mt-1" onclick="removeItem(${item.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    
+    summaryDiv.innerHTML = html;
+    
+    // Calculate totals
+    const taxAmount = (subtotal * TAX_RATE) / 100;
+    const totalAmount = subtotal + taxAmount;
+    
+    subtotalElement.textContent = `$${subtotal.toFixed(2)}`;
+    taxElement.textContent = `$${taxAmount.toFixed(2)}`;
+    totalElement.textContent = `$${totalAmount.toFixed(2)}`;
+}
+
+function updateProcessButton() {
+    const processBtn = document.getElementById('processSaleBtn');
+    const customerName = document.getElementById('customerName').value.trim();
+    const customerPhone = document.getElementById('customerPhone').value.trim();
+    
+    processBtn.disabled = !(cartItems.length > 0 && customerName && customerPhone);
+}
+
+function removeItem(itemId) {
+    cartItems = cartItems.filter(item => item.id != itemId);
+    updateOrderSummary();
+    updateProcessButton();
+    
+    // Re-enable the add button for this item
+    const addButton = document.querySelector(`.add-item-btn[data-item-id="${itemId}"]`);
+    if (addButton) {
+        addButton.disabled = false;
+        addButton.classList.remove('btn-secondary');
+        addButton.classList.add('btn-primary');
+    }
+}
+
+function processSale() {
+    if (cartItems.length === 0) return;
+    
+    const customerData = {
+        customer_name: document.getElementById('customerName').value.trim(),
+        customer_phone: document.getElementById('customerPhone').value.trim(),
+        customer_email: document.getElementById('customerEmail').value.trim(),
+        items: cartItems
+    };
+    
+    // In a real implementation, this would send an AJAX request
+    console.log('Processing sale:', customerData);
+    
+    // Show success modal
+    document.getElementById('saleIdDisplay').textContent = '#12345'; // Would be actual sale ID
+    document.getElementById('saleTotalDisplay').textContent = '$' + 
+        cartItems.reduce((total, item) => total + (item.quantity * item.unitPrice), 0).toFixed(2);
+    
+    const modal = new bootstrap.Modal(document.getElementById('saleSuccessModal'));
+    modal.show();
+    
+    // Reset the form
+    resetOrder();
+}
+
+function resetOrder() {
+    cartItems = [];
+    updateOrderSummary();
+    updateProcessButton();
+    
+    // Clear customer form
+    document.getElementById('customerForm').reset();
+    
+    // Re-enable all add buttons
+    document.querySelectorAll('.add-item-btn').forEach(button => {
+        button.disabled = false;
+        button.classList.remove('btn-secondary');
+        button.classList.add('btn-primary');
+    });
+    
+    // Clear all quantity inputs
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.value = '';
+    });
+}
+
+function showSuccessFeedback(button) {
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-check"></i> Added!';
+    button.classList.remove('btn-primary');
+    button.classList.add('btn-success');
+    
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.classList.remove('btn-success');
+        button.classList.add('btn-secondary');
+    }, 2000);
+}
+
+// Placeholder functions for quick actions
+function loadCustomerData() {
+    alert('Customer data loading feature would be implemented here');
+}
+
+function applyDiscount() {
+    alert('Discount feature would be implemented here');
+}
+
+function saveDraft() {
+    alert('Save draft feature would be implemented here');
+}
+</script>
+{% endblock %}

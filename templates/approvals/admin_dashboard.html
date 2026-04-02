@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}Approval Dashboard - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-clipboard-check"></i> Approval Dashboard
+            </h2>
+            <p class="text-muted mb-0">Manage and review pending approval requests</p>
+        </div>
+        <div>
+            <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-hourglass-split fs-2 text-warning"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">{{ total_pending }}</h5>
+                            <p class="card-text text-muted mb-0">Pending Approvals</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-check-circle fs-2 text-success"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">{{ total_approved }}</h5>
+                            <p class="card-text text-muted mb-0">Approved</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-x-circle fs-2 text-danger"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">{{ total_rejected }}</h5>
+                            <p class="card-text text-muted mb-0">Rejected</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-graph-up fs-2 text-info"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">
+                                {% if total_pending > 0 %}
+                                    {{ approval_rate|floatformat:0 }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </h5>
+                            <p class="card-text text-muted mb-0">Approval Rate</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Approvals Section -->
+    {% if pending_workflows %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning bg-opacity-10">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-warning">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Pending Approvals
+                        </h5>
+                        <span class="badge bg-warning text-dark fs-6">{{ pending_workflows|length }} items</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-warning">
+                            <thead>
+                                <tr>
+                                    <th>Request Type</th>
+                                    <th>Requested By</th>
+                                    <th>Description</th>
+                                    <th>Date Requested</th>
+                                    <th>Priority</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for workflow in pending_workflows %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ workflow.get_approval_type_display }}</strong>
+                                        <br><small class="text-muted">ID: {{ workflow.reference_id }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                <span class="text-white fw-bold">{{ workflow.requester.username|slice:":1"|upper }}</span>
+                                            </div>
+                                            <div>
+                                                <strong>{{ workflow.requester.username }}</strong>
+                                                <br><small class="text-muted">{{ workflow.requester.get_user_type_display }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <p class="mb-1">{{ workflow.comments|truncatewords:10|default:"No description provided" }}</p>
+                                        {% if workflow.approval_type == 'stock_request' %}
+                                        <small class="badge bg-info">Stock Request</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ workflow.created_at|date:"M j, Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ workflow.priority|default:'secondary' }}">
+                                            {{ workflow.priority|default:'Normal' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-success" 
+                                                    onclick="approveWorkflow({{ workflow.id }})"
+                                                    title="Approve">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="rejectWorkflow({{ workflow.id }})"
+                                                    title="Reject">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                            <button class="btn btn-outline-primary" 
+                                                    onclick="viewWorkflowDetails({{ workflow.id }})"
+                                                    title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Recent Activity
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_approvals %}
+                    <div class="list-group list-group-flush">
+                        {% for approval in recent_approvals %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        {{ approval.get_approval_type_display }} 
+                                        <span class="badge bg-{{ approval.status|yesno:'success,danger,secondary' }}">
+                                            {{ approval.get_status_display }}
+                                        </span>
+                                    </h6>
+                                    <p class="mb-1 text-muted">By {{ approval.requester.username }}</p>
+                                    <small class="text-muted">{{ approval.updated_at|timesince }} ago</small>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="viewWorkflowDetails({{ approval.id }})">
+                                        <i class="bi bi-eye"></i> Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+                        <h5 class="text-muted">No Recent Activity</h5>
+                        <p class="text-muted">Approval activity will appear here once requests are processed.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightning"></i> Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="bulkApprove()">
+                            <i class="bi bi-check-all"></i> Bulk Approve Selected
+                        </button>
+                        <button class="btn btn-outline-info" onclick="viewAllRequests()">
+                            <i class="bi bi-list-task"></i> View All Requests
+                        </button>
+                        <button class="btn btn-outline-success" onclick="generateReport()">
+                            <i class="bi bi-file-earmark-bar-graph"></i> Approval Report
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="setupNotifications()">
+                            <i class="bi bi-bell"></i> Notification Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approval Statistics -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart"></i> Approval Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Today's Approvals</span>
+                            <span class="fw-bold">{{ today_approvals|default:0 }}</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: {{ today_approvals|default:0 }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>This Week</span>
+                            <span class="fw-bold">{{ week_approvals|default:0 }}</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 8px;">
+                            <div class="progress-bar bg-info" style="width: {{ week_approvals|default:0 }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Average Response Time</span>
+                            <span class="fw-bold">{{ avg_response_time|default:"24h" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approval Modal -->
+<div class="modal fade" id="approvalModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Process Approval Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="approvalModalBody">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="approveBtn">Approve</button>
+                <button type="button" class="btn btn-danger" id="rejectBtn">Reject</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+}
+.card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+.badge {
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+}
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+}
+.btn-group .btn {
+    border-radius: 0.375rem !important;
+}
+.progress {
+    border-radius: 4px;
+}
+.progress-bar {
+    border-radius: 4px;
+}
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+.list-group-item:first-child {
+    border-top: none;
+}
+.list-group-item:last-child {
+    border-bottom: none;
+}
+.table-warning thead th {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+</style>
+
+<script>
+function approveWorkflow(workflowId) {
+    // In a real implementation, this would show approval form
+    alert(`Would approve workflow ${workflowId}`);
+}
+
+function rejectWorkflow(workflowId) {
+    // In a real implementation, this would show rejection form
+    alert(`Would reject workflow ${workflowId}`);
+}
+
+function viewWorkflowDetails(workflowId) {
+    // In a real implementation, this would load workflow details
+    alert(`Would show details for workflow ${workflowId}`);
+}
+
+function bulkApprove() {
+    alert('Bulk approval feature would be implemented here');
+}
+
+function viewAllRequests() {
+    alert('View all requests feature would be implemented here');
+}
+
+function generateReport() {
+    alert('Approval report generation feature would be implemented here');
+}
+
+function setupNotifications() {
+    alert('Notification settings feature would be implemented here');
+}
+
+// Auto-refresh pending approvals every 30 seconds
+setInterval(function() {
+    // In a real implementation, this would fetch updated data
+    console.log('Checking for new approvals...');
+}, 30000);
+</script>
+{% endblock %}

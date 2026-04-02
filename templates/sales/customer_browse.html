@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block title %}Browse Products - E-Bike System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-6 mb-0">
+                <i class="bi bi-cart-check"></i> Browse Products
+            </h1>
+            <p class="text-muted">Shop for E-Bike electronics and accessories</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'sales:customer_cart' %}" class="btn btn-primary position-relative">
+                <i class="bi bi-cart"></i> Cart
+                {% if cart_count %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    {{ cart_count }}
+                </span>
+                {% endif %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <select name="category" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Categories</option>
+                        {% for value, label in categories %}
+                        <option value="{{ value }}" {% if filter_category == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <input type="text" name="search" class="form-control" placeholder="Search products..." 
+                           value="{{ search_term }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <p class="text-muted mb-0">
+                Showing {{ products.count }} products
+            </p>
+        </div>
+    </div>
+
+    <!-- Products Grid -->
+    {% if products %}
+    <div class="row">
+        {% for product in products %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ product.name }}</h5>
+                        <span class="badge bg-{{ product.get_category_display|lower }}">{{ product.get_category_display }}</span>
+                    </div>
+                    
+                    <p class="card-text text-muted small mb-3">{{ product.description|truncatewords:15 }}</p>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold text-primary">${{ product.unit_price|floatformat:2 }}</span>
+                            <span class="text-muted small">Stock: {{ product.quantity }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-auto">
+                        {% if product.quantity > 0 %}
+                        <div class="input-group input-group-sm mb-2">
+                            <input type="number" class="form-control quantity-input" 
+                                   value="1" min="1" max="{{ product.quantity }}" 
+                                   data-product-id="{{ product.id }}"
+                                   style="max-width: 80px;">
+                            <button class="btn btn-primary add-to-cart-btn" 
+                                    data-product-id="{{ product.id }}"
+                                    type="button">
+                                <i class="bi bi-cart-plus"></i> Add
+                            </button>
+                        </div>
+                        {% else %}
+                        <button class="btn btn-secondary btn-sm w-100" disabled>
+                            <i class="bi bi-x-circle"></i> Out of Stock
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if products.has_other_pages %}
+    <nav aria-label="Products pagination">
+        <ul class="pagination justify-content-center">
+            {% if products.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ products.previous_page_number }}">Previous</a>
+            </li>
+            {% endif %}
+            
+            {% for num in products.paginator.page_range %}
+                {% if products.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if products.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ products.next_page_number }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-cart-x fs-1 text-muted mb-3"></i>
+        <h5 class="text-muted">No products found</h5>
+        <p class="text-muted">Try adjusting your search or filter criteria.</p>
+        <a href="{% url 'sales:customer_browse' %}" class="btn btn-primary">
+            <i class="bi bi-arrow-repeat"></i> Reset Filters
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.card {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.125);
+}
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+.badge.bg-battery { background-color: #0d6efd !important; }
+.badge.bg-controller { background-color: #198754 !important; }
+.badge.bg-display { background-color: #ffc107 !important; }
+.badge.bg-charger { background-color: #dc3545 !important; }
+.badge.bg-accessory { background-color: #6f42c1 !important; }
+.add-to-cart-btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.quantity-input {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add to cart functionality
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            const quantityInput = this.parentElement.querySelector('.quantity-input');
+            const quantity = parseInt(quantityInput.value);
+            
+            if (quantity <= 0) {
+                alert('Please enter a valid quantity');
+                return;
+            }
+            
+            // Disable button during request
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+            
+            fetch('{% url "sales:customer_add_to_cart" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    quantity: quantity
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update cart count in header
+                    const cartBadge = document.querySelector('.badge.rounded-pill.bg-danger');
+                    if (cartBadge) {
+                        cartBadge.textContent = data.cart_count;
+                    } else if (data.cart_count > 0) {
+                        // Create new badge if it doesn't exist
+                        const cartButton = document.querySelector('[href="{% url "sales:customer_cart" %}"]');
+                        const badge = document.createElement('span');
+                        badge.className = 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger';
+                        badge.textContent = data.cart_count;
+                        cartButton.appendChild(badge);
+                    }
+                    
+                    // Show success message
+                    alert(data.message);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while adding to cart');
+            })
+            .finally(() => {
+                // Re-enable button
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-cart-plus"></i> Add';
+            });
+        });
+    });
+});
+</script>
+
+{% csrf_token %}
+{% endblock %}

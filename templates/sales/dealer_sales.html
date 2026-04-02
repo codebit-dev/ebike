@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}My Sales - Dealer Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-cart3"></i> My Sales History
+            </h2>
+            <p class="text-muted mb-0">View and manage your sales transactions</p>
+        </div>
+        <div>
+            <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <a href="{% url 'sales:create_sale' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create New Sale
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-currency-dollar fs-2 text-success"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">${{ total_sales|floatformat:2 }}</h5>
+                            <p class="card-text text-muted mb-0">Total Sales</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-receipt fs-2 text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">{{ total_transactions }}</h5>
+                            <p class="card-text text-muted mb-0">Total Transactions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-graph-up fs-2 text-info"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">
+                                {% if total_transactions > 0 %}
+                                    ${{ total_sales|div:total_transactions|floatformat:2 }}
+                                {% else %}
+                                    $0.00
+                                {% endif %}
+                            </h5>
+                            <p class="card-text text-muted mb-0">Average Sale</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-calendar-check fs-2 text-warning"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">{{ recent_sales|length }}</h5>
+                            <p class="card-text text-muted mb-0">Recent Sales</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Status</label>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="draft" {% if filter_status == 'draft' %}selected{% endif %}>Draft</option>
+                        <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="cancelled" {% if filter_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Date Range</label>
+                    <input type="date" name="date_from" class="form-control" 
+                           value="{{ request.GET.date_from }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bi bi-funnel"></i> Filter
+                        </button>
+                        <a href="{% url 'sales:dealer_sales' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sales Table -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-list"></i> Sales Transactions
+                </h5>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                            data-bs-toggle="dropdown">
+                        <i class="bi bi-download"></i> Export
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-filetype-csv"></i> CSV</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-filetype-pdf"></i> PDF</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if sales %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Sale ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales %}
+                        <tr>
+                            <td>
+                                <strong>#{{ sale.id }}</strong>
+                                {% if sale.invoice %}
+                                <br><small class="text-success"><i class="bi bi-receipt"></i> Invoiced</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ sale.customer_name }}</strong>
+                                <br><small class="text-muted">{{ sale.customer_phone }}</small>
+                                {% if sale.customer_email %}
+                                <br><small class="text-muted">{{ sale.customer_email }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ sale.created_at|date:"M j, Y" }}</td>
+                            <td>
+                                {% for item in sale.items.all|slice:":3" %}
+                                <span class="badge bg-secondary me-1">{{ item.item.name }}</span>
+                                {% endfor %}
+                                {% if sale.items.count > 3 %}
+                                <span class="badge bg-light text-dark">+{{ sale.items.count|add:"-3" }} more</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong class="text-success">${{ sale.total_amount|floatformat:2 }}</strong>
+                            </td>
+                            <td>
+                                {% if sale.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif sale.status == 'draft' %}
+                                    <span class="badge bg-warning text-dark">Draft</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'sales:sale_detail' sale.id %}" 
+                                       class="btn btn-outline-primary" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if not sale.invoice and sale.status == 'completed' %}
+                                    <a href="{% url 'sales:generate_invoice' sale.id %}" 
+                                       class="btn btn-outline-success" title="Generate Invoice">
+                                        <i class="bi bi-receipt"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if sales.has_other_pages %}
+            <nav aria-label="Sales pagination">
+                <ul class="pagination justify-content-center">
+                    {% if sales.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ sales.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in sales.paginator.page_range %}
+                        {% if sales.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > sales.number|add:'-3' and num < sales.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if sales.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ sales.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-cart-x fs-1 text-muted mb-3"></i>
+                <h5 class="text-muted">No Sales Records Found</h5>
+                <p class="text-muted">You haven't made any sales yet.</p>
+                <a href="{% url 'sales:create_sale' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Create First Sale
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Sales Highlights -->
+    {% if recent_sales %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightning"></i> Recent High-Value Sales
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for sale in recent_sales %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h6 class="card-title">Sale #{{ sale.id }}</h6>
+                                    <p class="card-text">
+                                        <strong>{{ sale.customer_name }}</strong><br>
+                                        <span class="text-success fw-bold">${{ sale.total_amount|floatformat:2 }}</span>
+                                    </p>
+                                    <small class="text-muted">{{ sale.created_at|date:"M j, Y g:i A" }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+.badge {
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+}
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+}
+.card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+.btn-group .btn {
+    border-radius: 0.375rem !important;
+}
+.pagination .page-link {
+    border-radius: 0.375rem;
+    margin: 0 2px;
+}
+.pagination .page-item.active .page-link {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.dropdown-menu {
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow-lg);
+}
+</style>
+{% endblock %}

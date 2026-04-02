@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+
+{% block title %}My Service Bookings - Customer{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-list-task"></i> My Service Bookings
+            </h2>
+            <p class="text-muted mb-0">View and manage your service appointment history</p>
+        </div>
+        <div>
+            <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <a href="{% url 'services:book_service' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Book New Service
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-clock fs-2 text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">{{ pending_bookings|length }}</h5>
+                            <p class="card-text text-muted mb-0">Pending</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-tools fs-2 text-warning"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">{{ in_progress_bookings|length }}</h5>
+                            <p class="card-text text-muted mb-0">In Progress</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-check-circle fs-2 text-success"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">{{ completed_bookings|length }}</h5>
+                            <p class="card-text text-muted mb-0">Completed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-calendar-check fs-2 text-info"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">{{ total_spent|floatformat:2 }}</h5>
+                            <p class="card-text text-muted mb-0">Total Spent</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Status</label>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="assigned" {% if filter_status == 'assigned' %}selected{% endif %}>Assigned</option>
+                        <option value="in_progress" {% if filter_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="cancelled" {% if filter_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Service Type</label>
+                    <select name="service_type" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Types</option>
+                        <option value="repair" {% if request.GET.service_type == 'repair' %}selected{% endif %}>Repair</option>
+                        <option value="maintenance" {% if request.GET.service_type == 'maintenance' %}selected{% endif %}>Maintenance</option>
+                        <option value="inspection" {% if request.GET.service_type == 'inspection' %}selected{% endif %}>Inspection</option>
+                        <option value="warranty" {% if request.GET.service_type == 'warranty' %}selected{% endif %}>Warranty</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bi bi-funnel"></i> Filter
+                        </button>
+                        <a href="{% url 'services:my_bookings' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bookings Table -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-list"></i> Service Booking History
+                </h5>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                            data-bs-toggle="dropdown">
+                        <i class="bi bi-sort-down"></i> Sort By
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="?sort=date_desc">Newest First</a></li>
+                        <li><a class="dropdown-item" href="?sort=date_asc">Oldest First</a></li>
+                        <li><a class="dropdown-item" href="?sort=status">By Status</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if bookings %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Service Type</th>
+                            <th>Description</th>
+                            <th>Scheduled Date</th>
+                            <th>Status</th>
+                            <th>Estimated Cost</th>
+                            <th>Service Man</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in bookings %}
+                        <tr>
+                            <td>
+                                <strong>#{{ booking.id }}</strong>
+                                <br><small class="text-muted">Booked: {{ booking.created_at|date:"M j, Y" }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ booking.service_type|yesno:'primary,success,warning,info' }}">
+                                    {{ booking.get_service_type_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <p class="mb-1">{{ booking.description|truncatewords:8 }}</p>
+                                {% if booking.urgency == 'high' %}
+                                <span class="badge bg-warning text-dark">High Priority</span>
+                                {% elif booking.urgency == 'emergency' %}
+                                <span class="badge bg-danger">Emergency</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ booking.scheduled_date|date:"M j, Y" }}</strong>
+                                <br><small class="text-muted">{{ booking.scheduled_date|time:"g:i A" }}</small>
+                                {% if booking.scheduled_date|date:"Ymd" == today|date:"Ymd" %}
+                                <br><span class="badge bg-info">Today</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if booking.status == 'pending' %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                {% elif booking.status == 'assigned' %}
+                                    <span class="badge bg-primary">Assigned</span>
+                                {% elif booking.status == 'in_progress' %}
+                                    <span class="badge bg-warning text-dark">In Progress</span>
+                                {% elif booking.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if booking.estimated_cost %}
+                                    <strong class="text-success">${{ booking.estimated_cost|floatformat:2 }}</strong>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                                {% if booking.actual_cost and booking.status == 'completed' %}
+                                <br><small class="text-muted">Actual: ${{ booking.actual_cost|floatformat:2 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if booking.assigned_service_man %}
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                                            <span class="text-white fw-bold">{{ booking.assigned_service_man.username|slice:":1"|upper }}</span>
+                                        </div>
+                                        <span>{{ booking.assigned_service_man.username }}</span>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">Not assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-outline-primary" 
+                                            onclick="viewBookingDetails({{ booking.id }})"
+                                            title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    {% if booking.status == 'pending' or booking.status == 'assigned' %}
+                                    <button class="btn btn-outline-warning" 
+                                            onclick="modifyBooking({{ booking.id }})"
+                                            title="Modify Booking">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" 
+                                            onclick="cancelBooking({{ booking.id }})"
+                                            title="Cancel Booking">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if booking.status == 'completed' and booking.report %}
+                                    <button class="btn btn-outline-success" 
+                                            onclick="viewReport({{ booking.id }})"
+                                            title="View Service Report">
+                                        <i class="bi bi-file-text"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if bookings.has_other_pages %}
+            <nav aria-label="Bookings pagination">
+                <ul class="pagination justify-content-center">
+                    {% if bookings.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ bookings.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in bookings.paginator.page_range %}
+                        {% if bookings.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > bookings.number|add:'-3' and num < bookings.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if bookings.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ bookings.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-calendar-x fs-1 text-muted mb-3"></i>
+                <h5 class="text-muted">No Service Bookings Found</h5>
+                <p class="text-muted">You haven't booked any service appointments yet.</p>
+                <a href="{% url 'services:book_service' %}" class="btn btn-primary">
+                    <i class="bi bi-calendar-plus"></i> Book Your First Service
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Service History Highlights -->
+    {% if recent_completed %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-star"></i> Recent Completed Services
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for booking in recent_completed %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        {{ booking.get_service_type_display }}
+                                        <span class="badge bg-success float-end">Completed</span>
+                                    </h6>
+                                    <p class="card-text">
+                                        <strong>Service Man:</strong> {{ booking.assigned_service_man.username }}<br>
+                                        <strong>Cost:</strong> ${{ booking.actual_cost|floatformat:2 }}<br>
+                                        <strong>Date:</strong> {{ booking.completed_date|date:"M j, Y" }}
+                                    </p>
+                                    <button class="btn btn-sm btn-outline-success" 
+                                            onclick="viewReport({{ booking.id }})">
+                                        <i class="bi bi-file-text"></i> View Report
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Booking Details Modal -->
+<div class="modal fade" id="bookingDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Service Booking Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="bookingDetailsContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+}
+.card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+.badge {
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+}
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+}
+.btn-group .btn {
+    border-radius: 0.375rem !important;
+}
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+.pagination .page-link {
+    border-radius: 0.375rem;
+    margin: 0 2px;
+}
+.pagination .page-item.active .page-link {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.dropdown-menu {
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow-lg);
+}
+</style>
+
+<script>
+function viewBookingDetails(bookingId) {
+    // In a real implementation, this would load booking details via AJAX
+    alert(`Would show details for booking ${bookingId}`);
+}
+
+function modifyBooking(bookingId) {
+    // In a real implementation, this would open modify form
+    alert(`Would modify booking ${bookingId}`);
+}
+
+function cancelBooking(bookingId) {
+    if (confirm('Are you sure you want to cancel this booking?')) {
+        // In a real implementation, this would send cancellation request
+        alert(`Would cancel booking ${bookingId}`);
+        location.reload();
+    }
+}
+
+function viewReport(bookingId) {
+    // In a real implementation, this would show service report
+    alert(`Would show report for booking ${bookingId}`);
+}
+
+// Auto-refresh bookings every 2 minutes for status updates
+setInterval(function() {
+    console.log('Checking for booking updates...');
+}, 120000);
+</script>
+{% endblock %}

@@ -1,0 +1,394 @@
+{% extends "base.html" %}
+
+{% block title %}{{ action }} Product - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-box"></i> {{ action }} Product
+            </h2>
+            <p class="text-muted mb-0">
+                {% if action == "Create" %}
+                    Add a new product to the warehouse inventory
+                {% else %}
+                    Update existing product information
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'inventory:product_management' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Products
+            </a>
+        </div>
+    </div>
+
+    <!-- Product Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Product Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="productForm">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Product Name *</label>
+                                <input type="text" name="name" class="form-control" 
+                                       value="{{ product.name|default:'' }}" required
+                                       placeholder="Enter product name">
+                                <div class="form-text">Full name of the product</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">SKU *</label>
+                                <input type="text" name="sku" class="form-control" 
+                                       value="{{ product.sku|default:'' }}" required
+                                       placeholder="Unique product code">
+                                <div class="form-text">Stock Keeping Unit</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Category *</label>
+                                <select name="category" class="form-select" required>
+                                    <option value="">Select Category</option>
+                                    {% for value, label in categories %}
+                                    <option value="{{ value }}" {% if product.category == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Quantity *</label>
+                                <input type="number" name="quantity" class="form-control" 
+                                       value="{{ product.quantity|default:'0' }}" min="0" required
+                                       placeholder="Current stock quantity">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Unit Price ($)*</label>
+                                <input type="number" name="unit_price" class="form-control" 
+                                       value="{{ product.unit_price|default:'0.00' }}" 
+                                       min="0" step="0.01" required
+                                       placeholder="0.00">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="active" {% if product.status == 'active' or not product %}selected{% endif %}>Active</option>
+                                    <option value="inactive" {% if product.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                                    <option value="discontinued" {% if product.status == 'discontinued' %}selected{% endif %}>Discontinued</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="3" 
+                                      placeholder="Detailed product description...">{{ product.description|default:'' }}</textarea>
+                            <div class="form-text">Optional detailed description of the product</div>
+                        </div>
+
+                        <!-- Additional Fields Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-plus-square"></i> Additional Information
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Weight (kg)</label>
+                                        <input type="number" name="weight" class="form-control" 
+                                               value="{{ product.weight|default:'' }}" 
+                                               min="0" step="0.01" placeholder="Product weight">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Dimensions</label>
+                                        <input type="text" name="dimensions" class="form-control" 
+                                               value="{{ product.dimensions|default:'' }}" 
+                                               placeholder="L x W x H (cm)">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Brand/Manufacturer</label>
+                                        <input type="text" name="brand" class="form-control" 
+                                               value="{{ product.brand|default:'' }}" 
+                                               placeholder="Product brand">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Warranty Period</label>
+                                        <select name="warranty_months" class="form-select">
+                                            <option value="">No Warranty</option>
+                                            <option value="6" {% if product.warranty_months == 6 %}selected{% endif %}>6 Months</option>
+                                            <option value="12" {% if product.warranty_months == 12 %}selected{% endif %}>1 Year</option>
+                                            <option value="24" {% if product.warranty_months == 24 %}selected{% endif %}>2 Years</option>
+                                            <option value="36" {% if product.warranty_months == 36 %}selected{% endif %}>3 Years</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Image Upload Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-image"></i> Product Images
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Main Product Image</label>
+                                    <input type="file" name="main_image" class="form-control" accept="image/*">
+                                    <div class="form-text">Upload a high-quality image of the product</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-3 text-center" style="min-height: 150px;">
+                                            <i class="bi bi-cloud-upload fs-1 text-muted"></i>
+                                            <p class="text-muted mb-0">Drag & drop images here</p>
+                                            <p class="text-muted small">or click to browse</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-grid gap-2">
+                                            <button type="button" class="btn btn-outline-secondary">
+                                                <i class="bi bi-plus-circle"></i> Add More Images
+                                            </button>
+                                            <button type="button" class="btn btn-outline-info">
+                                                <i class="bi bi-camera"></i> Take Photo
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SEO Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-search"></i> SEO Information
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Meta Title</label>
+                                    <input type="text" name="meta_title" class="form-control" 
+                                           value="{{ product.meta_title|default:'' }}" 
+                                           maxlength="60" placeholder="SEO title for search engines">
+                                    <div class="form-text">Keep under 60 characters</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Meta Description</label>
+                                    <textarea name="meta_description" class="form-control" rows="2" 
+                                              maxlength="160" placeholder="Brief description for search results">{{ product.meta_description|default:'' }}</textarea>
+                                    <div class="form-text">Keep under 160 characters</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Keywords</label>
+                                    <input type="text" name="keywords" class="form-control" 
+                                           value="{{ product.keywords|default:'' }}" 
+                                           placeholder="comma, separated, keywords">
+                                    <div class="form-text">Separate keywords with commas</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'inventory:product_management' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-save"></i> {{ action }} Product
+                                </button>
+                                <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" 
+                                        data-bs-toggle="dropdown"></button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <button type="submit" name="save_action" value="save_and_new" class="dropdown-item">
+                                            <i class="bi bi-plus-circle"></i> Save and Add Another
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="submit" name="save_action" value="save_and_edit" class="dropdown-item">
+                                            <i class="bi bi-pencil"></i> Save and Continue Editing
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 80px;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-eye"></i> Product Preview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto" 
+                             style="width: 100px; height: 100px;">
+                            <i class="bi bi-box fs-1 text-muted"></i>
+                        </div>
+                        <h6 class="mt-2 mb-1" id="previewName">Product Name</h6>
+                        <small class="text-muted" id="previewSku">SKU-001</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Category:</small>
+                        <span class="badge bg-primary ms-1" id="previewCategory">Category</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Price:</small>
+                        <strong class="text-success ms-1" id="previewPrice">$0.00</strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Stock:</small>
+                        <span class="badge bg-success ms-1" id="previewStock">0 in stock</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Status:</small>
+                        <span class="badge bg-info ms-1" id="previewStatus">Active</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm);
+}
+.card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.btn-primary {
+    background: var(--primary-color);
+    border: none;
+}
+.btn-primary:hover {
+    background: var(--secondary-color);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+.sticky-top {
+    z-index: 1020;
+}
+.border {
+    border: 2px dashed var(--border-color) !important;
+}
+.border:hover {
+    border-color: var(--primary-color) !important;
+    background: rgba(37, 99, 235, 0.03);
+}
+.dropdown-menu {
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow-lg);
+}
+</style>
+
+<script>
+// Real-time preview updates
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.querySelector('input[name="name"]');
+    const skuInput = document.querySelector('input[name="sku"]');
+    const categorySelect = document.querySelector('select[name="category"]');
+    const priceInput = document.querySelector('input[name="unit_price"]');
+    const quantityInput = document.querySelector('input[name="quantity"]');
+    const statusSelect = document.querySelector('select[name="status"]');
+    
+    const previewName = document.getElementById('previewName');
+    const previewSku = document.getElementById('previewSku');
+    const previewCategory = document.getElementById('previewCategory');
+    const previewPrice = document.getElementById('previewPrice');
+    const previewStock = document.getElementById('previewStock');
+    const previewStatus = document.getElementById('previewStatus');
+    
+    function updatePreview() {
+        previewName.textContent = nameInput.value || 'Product Name';
+        previewSku.textContent = skuInput.value || 'SKU-001';
+        previewCategory.textContent = categorySelect.options[categorySelect.selectedIndex]?.text || 'Category';
+        previewPrice.textContent = '$' + (priceInput.value || '0.00');
+        previewStock.textContent = (quantityInput.value || '0') + ' in stock';
+        previewStatus.textContent = statusSelect.options[statusSelect.selectedIndex]?.text || 'Active';
+    }
+    
+    // Add event listeners
+    nameInput.addEventListener('input', updatePreview);
+    skuInput.addEventListener('input', updatePreview);
+    categorySelect.addEventListener('change', updatePreview);
+    priceInput.addEventListener('input', updatePreview);
+    quantityInput.addEventListener('input', updatePreview);
+    statusSelect.addEventListener('change', updatePreview);
+    
+    // Initialize preview
+    updatePreview();
+    
+    // Form validation
+    document.getElementById('productForm').addEventListener('submit', function(e) {
+        // Check required fields
+        const requiredFields = ['name', 'sku', 'category', 'quantity', 'unit_price'];
+        let isValid = true;
+        
+        requiredFields.forEach(fieldName => {
+            const field = document.querySelector(`[name="${fieldName}"]`);
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+        }
+    });
+    
+    // Auto-generate SKU based on product name
+    nameInput.addEventListener('blur', function() {
+        if (!skuInput.value && this.value) {
+            const slug = this.value.toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+            skuInput.value = slug.substring(0, 10).toUpperCase() + '-' + Math.floor(Math.random() * 1000);
+            updatePreview();
+        }
+    });
+});
+</script>
+{% endblock %}

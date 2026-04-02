@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}Approve Order {{ order.order_number }} - E-Bike System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-6 mb-0">
+                <i class="bi bi-check-circle"></i> Approve Order
+            </h1>
+            <p class="text-muted">Review and approve customer order #{{ order.order_number }}</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'sales:dealer_order_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Orders
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-box-seam"></i> Order Items
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.order_items.all %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <h6 class="mb-1">{{ item.product.name }}</h6>
+                                            <small class="text-muted">{{ item.product.description|truncatewords:10 }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ item.product.get_category_display|lower }}">
+                                            {{ item.product.get_category_display }}
+                                        </span>
+                                    </td>
+                                    <td>${{ item.unit_price|floatformat:2 }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td class="fw-bold">${{ item.total_price|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person"></i> Customer Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Personal Details</h6>
+                            <p class="mb-1"><strong>Name:</strong> {{ order.customer.get_full_name|default:order.customer.username }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ order.customer.email }}</p>
+                            <p class="mb-1"><strong>Phone:</strong> {{ order.phone_number }}</p>
+                            <p class="mb-0"><strong>Account Since:</strong> {{ order.customer.date_joined|date:"M j, Y" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Order Details</h6>
+                            <p class="mb-1"><strong>Order Number:</strong> {{ order.order_number }}</p>
+                            <p class="mb-1"><strong>Order Date:</strong> {{ order.created_at|date:"M j, Y g:i A" }}</p>
+                            <p class="mb-1"><strong>Items:</strong> {{ order.items_count }}</p>
+                            <p class="mb-0"><strong>Notes:</strong> {{ order.notes|default:"None" }}</p>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="text-muted">Shipping Address</h6>
+                    <p class="mb-0">{{ order.shipping_address|linebreaksbr }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-receipt"></i> Order Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span class="fw-bold">${{ order.total_amount|floatformat:2 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping:</span>
+                        <span class="fw-bold text-success">FREE</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tax:</span>
+                        <span class="fw-bold">$0.00</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-4">
+                        <span class="fs-5">Total:</span>
+                        <span class="fs-5 fw-bold text-primary">${{ order.total_amount|floatformat:2 }}</span>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Payment Method</strong>
+                        <p class="mb-0">Cash on Delivery - Customer will pay upon delivery</p>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Stock Impact</strong>
+                        <p class="mb-0">Approving this order will reduce warehouse stock by {{ order.items_count }} items</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check-square"></i> Approval Action
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Approval Notes (Optional)</label>
+                            <textarea class="form-control" name="approval_notes" rows="3" 
+                                      placeholder="Add any notes about this approval..."></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" 
+                                    onclick="return confirm('Are you sure you want to approve this order? This will reduce warehouse stock.')">
+                                <i class="bi bi-check-circle"></i> Approve Order
+                            </button>
+                            
+                            <a href="{% url 'sales:dealer_order_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <i class="bi bi-shield-check text-success fs-1 mb-3"></i>
+                    <h6>Secure Approval Process</h6>
+                    <p class="text-muted small mb-0">
+                        Once approved, a receipt will be automatically generated and stock will be reduced.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: 1px solid rgba(0,0,0,0.125);
+    border-radius: 0.75rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.badge.bg-battery { background-color: #0d6efd !important; }
+.badge.bg-controller { background-color: #198754 !important; }
+.badge.bg-display { background-color: #ffc107 !important; }
+.badge.bg-charger { background-color: #dc3545 !important; }
+.badge.bg-accessory { background-color: #6f42c1 !important; }
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+.alert-info {
+    border-left: 4px solid #0dcaf0;
+}
+.alert-warning {
+    border-left: 4px solid #ffc107;
+}
+.btn-success {
+    background-color: #198754;
+    border-color: #198754;
+}
+.btn-success:hover {
+    background-color: #157347;
+    border-color: #157347;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout - E-Bike System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-6 mb-0">
+                <i class="bi bi-credit-card"></i> Checkout
+            </h1>
+            <p class="text-muted">Complete your order with Cash on Delivery</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-truck"></i> Shipping Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="checkoutForm">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="full_name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="full_name" 
+                                       value="{{ customer.get_full_name|default:customer.username }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" 
+                                       value="{{ customer.email }}" readonly>
+                            </div>
+                            <div class="col-12">
+                                <label for="shipping_address" class="form-label">Shipping Address *</label>
+                                <textarea class="form-control" id="shipping_address" name="shipping_address" 
+                                          rows="3" required placeholder="Enter your complete shipping address"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone_number" class="form-label">Phone Number *</label>
+                                <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                                       required placeholder="Enter your phone number">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="payment_method" class="form-label">Payment Method</label>
+                                <select class="form-select" id="payment_method" disabled>
+                                    <option value="cod" selected>Cash on Delivery</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label for="notes" class="form-label">Order Notes (Optional)</label>
+                                <textarea class="form-control" id="notes" name="notes" 
+                                          rows="2" placeholder="Any special instructions for your order"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-cart-check"></i> Order Items
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in cart_items %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <h6 class="mb-1">{{ item.product.name }}</h6>
+                                            <small class="text-muted">{{ item.product.get_category_display }}</small>
+                                        </div>
+                                    </td>
+                                    <td>${{ item.price|floatformat:2 }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td class="fw-bold">${{ item.total|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card sticky-top">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-receipt"></i> Order Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span class="fw-bold">${{ total_amount|floatformat:2 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping:</span>
+                        <span class="fw-bold text-success">FREE</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tax:</span>
+                        <span class="fw-bold">$0.00</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-4">
+                        <span class="fs-5">Total:</span>
+                        <span class="fs-5 fw-bold text-primary">${{ total_amount|floatformat:2 }}</span>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Cash on Delivery</strong>
+                        <p class="mb-0 small">You'll pay when your order is delivered. No advance payment required.</p>
+                    </div>
+
+                    <button type="submit" form="checkoutForm" class="btn btn-success btn-lg w-100 mb-3">
+                        <i class="bi bi-check-circle"></i> Place Order
+                    </button>
+
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <i class="bi bi-shield-lock"></i> Secure checkout powered by E-Bike System
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="bi bi-info-circle"></i> Order Process
+                    </h6>
+                    <ul class="list-unstyled small mb-0">
+                        <li class="mb-1"><i class="bi bi-check-circle-fill text-success"></i> Place your order</li>
+                        <li class="mb-1"><i class="bi bi-clock-history text-warning"></i> Wait for dealer approval</li>
+                        <li class="mb-1"><i class="bi bi-box-seam text-info"></i> Order processing</li>
+                        <li class="mb-1"><i class="bi bi-truck text-primary"></i> Delivery</li>
+                        <li class="mb-0"><i class="bi bi-cash-stack text-success"></i> Pay on delivery</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: 1px solid rgba(0,0,0,0.125);
+    border-radius: 0.75rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.sticky-top {
+    top: 1rem;
+}
+.alert-warning {
+    border-left: 4px solid #ffc107;
+}
+.btn-success {
+    background-color: #198754;
+    border-color: #198754;
+}
+.btn-success:hover {
+    background-color: #157347;
+    border-color: #157347;
+}
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('checkoutForm');
+    
+    form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Processing...';
+        
+        // Validate required fields
+        const shippingAddress = document.getElementById('shipping_address').value.trim();
+        const phoneNumber = document.getElementById('phone_number').value.trim();
+        
+        if (!shippingAddress || !phoneNumber) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+        }
+        
+        // Form will submit normally if validation passes
+    });
+});
+</script>
+{% endblock %}

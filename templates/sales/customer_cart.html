@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Shopping Cart - E-Bike System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-6 mb-0">
+                <i class="bi bi-cart"></i> Shopping Cart
+            </h1>
+            <p class="text-muted">Review your items before checkout</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'sales:customer_browse' %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Continue Shopping
+            </a>
+        </div>
+    </div>
+
+    {% if cart_items %}
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-cart-check"></i> Your Items ({{ cart_items|length }} items)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in cart_items %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <h6 class="mb-1">{{ item.product.name }}</h6>
+                                            <small class="text-muted">{{ item.product.get_category_display }}</small>
+                                        </div>
+                                    </td>
+                                    <td>${{ item.price|floatformat:2 }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td class="fw-bold">${{ item.total|floatformat:2 }}</td>
+                                    <td>
+                                        <a href="{% url 'sales:customer_remove_from_cart' item.product.id %}" 
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('Remove this item from cart?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-receipt"></i> Order Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Subtotal:</span>
+                        <span class="fw-bold">${{ total_amount|floatformat:2 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Shipping:</span>
+                        <span class="fw-bold text-success">FREE</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-4">
+                        <span class="fs-5">Total:</span>
+                        <span class="fs-5 fw-bold text-primary">${{ total_amount|floatformat:2 }}</span>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Cash on Delivery</strong>
+                        <p class="mb-0 small">Pay when your order is delivered</p>
+                    </div>
+                    
+                    <a href="{% url 'sales:customer_checkout' %}" class="btn btn-primary w-100 btn-lg">
+                        <i class="bi bi-credit-card"></i> Proceed to Checkout
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <i class="bi bi-shield-check text-success fs-1 mb-3"></i>
+                    <h6>Secure Payment</h6>
+                    <p class="text-muted small mb-0">
+                        Your payment information is protected with bank-level security.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-cart-x fs-1 text-muted mb-3"></i>
+        <h5 class="text-muted">Your cart is empty</h5>
+        <p class="text-muted">Add some products to your cart to continue shopping.</p>
+        <a href="{% url 'sales:customer_browse' %}" class="btn btn-primary">
+            <i class="bi bi-shop"></i> Start Shopping
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+.card {
+    border: 1px solid rgba(0,0,0,0.125);
+    border-radius: 0.75rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+.alert-info {
+    border-left: 4px solid #0dcaf0;
+}
+</style>
+{% endblock %}
